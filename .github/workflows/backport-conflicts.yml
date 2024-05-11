@@ -21,8 +21,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name:  check conflicts
         run: |
-          git add upstream https://github.com/Hailong-am/OpenSearch.git
+          git remote add upstream https://github.com/opensearch-project/OpenSearch
           git fetch upstream main
+          git checkout -b upstream_main --track upstream/main
           git merge --squash ${{ github.event.pull_request.head.sha }}
           if [ $? -eq 0 ]; then
             cherp_pick_id=$(git rev-parse HEAD)
