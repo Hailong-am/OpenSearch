@@ -21,15 +21,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - name:  check conflicts
         run: |
-          git branch pr_branch ${{ github.event.pull_request.head.sha }}
           git remote add upstream https://github.com/opensearch-project/OpenSearch
           git fetch upstream main
           git checkout -b upstream_main --track upstream/main
-          git merge --squash pr_branch
+          git merge --squash --allow-unrelated-histories ${{ github.event.pull_request.head.sha }}
           if [ $? -eq 0 ]; then
-            cherp_pick_id=$(git rev-parse HEAD)
-            git checkout 2.x
-            result=$(git cherry-pick -x --mainline 1 ${cherp_pick_id})
+            git stash
+            git fetch upstream 2.x
+            git checkout -b upstream_2.x --track upstream/main
+            result=$(git stash pop)
             if [[ $? -eq 0 ]]; then 
               echo 'No backport conflicts'; 
             else 
