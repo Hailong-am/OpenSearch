@@ -1,0 +1,42 @@
+name: 'backport conflict check'
+
+on:
+  pull_request_target:
+    types: 
+      - labeld
+      - reopened
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
+
+jobs:
+  backportCheck:
+    if: (github.event.action == 'labeled'
+          && contains(github.event.label.name, 'backport'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OpenSearch repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name:  check conflicts
+        run: |
+          git add upstream https://github.com/Hailong-am/OpenSearch.git
+          git fetch upstream main
+          git merge --squash ${{ github.event.pull_request.head.sha }}
+          if [ $? -eq 0 ]; then
+            cherp_pick_id=$(git rev-parse HEAD)
+            git checkout 2.x
+            result=$(git cherry-pick -x --mainline 1 ${cherp_pick_id})
+            if [[ $? -eq 0 ]]; then 
+              echo 'No backport conflicts'; 
+            else 
+              conflicts=`echo $result | grep 'CONFLICT'`
+              echo $conflicts
+              # add comments to PR
+            fi
+          else:
+            echo "conclict with main"
+            exit;
+          fi
+          
