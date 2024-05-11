@@ -17,8 +17,7 @@ jobs:
     steps:
       - name: Checkout OpenSearch repo
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
+        
       - name:  check conflicts
         run: |
           git remote add upstream https://github.com/opensearch-project/OpenSearch
