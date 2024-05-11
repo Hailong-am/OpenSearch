@@ -24,6 +24,8 @@ jobs:
           git remote add upstream https://github.com/opensearch-project/OpenSearch
           git fetch upstream main
           git checkout -b upstream_main --track upstream/main
+          git config --global user.email "ci@example.com"
+          git config --global user.name "ci"
           git merge --squash --allow-unrelated-histories ${{ github.event.pull_request.head.sha }}
           if [ $? -eq 0 ]; then
             git stash
