@@ -17,6 +17,7 @@ import org.opensearch.common.settings.Setting.Property;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.common.util.net.NetUtils;
 import org.opensearch.core.common.unit.ByteSizeUnit;
@@ -381,6 +382,8 @@ public class ReactorNetty4HttpServerTransport extends AbstractHttpServerTranspor
             request.params()
         );
         if (dispatchHandlerOpt.map(RestHandler::supportsStreaming).orElse(false)) {
+            final ThreadContext.StoredContext storedContext = threadPool.getThreadContext().newStoredContext(false);
+
             final ReactorNetty4StreamingRequestConsumer<HttpContent> consumer = new ReactorNetty4StreamingRequestConsumer<>(
                 this,
                 request,
@@ -392,7 +395,9 @@ public class ReactorNetty4HttpServerTransport extends AbstractHttpServerTranspor
                 .subscribe(consumer, error -> {}, () -> consumer.accept(DefaultLastHttpContent.EMPTY_LAST_CONTENT));
 
             incomingStream(new ReactorNetty4HttpRequest(request), consumer.httpChannel());
-            return response.sendObject(consumer);
+
+            // restore ThreadContext when streaming is finished
+            return response.sendObject(consumer).then(Mono.fromRunnable(storedContext::close));
         } else {
             final ReactorNetty4NonStreamingRequestConsumer<HttpContent> consumer = new ReactorNetty4NonStreamingRequestConsumer<>(
                 this,
